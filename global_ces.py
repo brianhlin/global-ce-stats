@@ -29,10 +29,13 @@ CONDOR_STATUS_MAP = {1: 'IDLE',
                      7: 'SUSPENDED'}
 
 
-def _ce_fqdn(ce_endpoint: str) -> str:
-    """Given a CE contact string, remove the port if it exists and return the CE FQDN as a string
+def _ce_fqdn(contact_str: str) -> str:
+    """Given a CE contact string:
+    - <FQDN>:<PORT>
+    - <FQDN> <FQDN>:<PORT>
+    Remove the port if it exists and return the CE FQDN as a string
     """
-    return ce_endpoint.split(':')[0]
+    return contact_str.split(':')[0].split()[0]
 
 
 def _parse_gwms_config(config: ElementTree.ElementTree) -> Set:
