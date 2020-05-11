@@ -4,9 +4,11 @@
 """
 
 import json
+import os
 import shutil
 import subprocess
 
+from datetime import date
 from glob import glob
 from xml.etree import ElementTree
 from tempfile import mkdtemp
@@ -52,19 +54,55 @@ class GitRepo():
     """
 
     def __init__(self, repo):
-        """Clone a Git 'repo' into a temporary directory and return the path to the directory.
+        """Clone a Git 'repo' into a temporary directory.
         The caller is responsible for cleaning up this directory.
         """
+        self._old_workdir = os.getcwd()
         self.repo = repo
         self.path = mkdtemp()
-        cmd = ['git', 'clone', '--depth', '1', self.repo, self.path]
-        subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._git_run_command('clone', self.repo, self.path)
+        self.head = self._rev_list('-n1', '--first-parent', 'master')
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         shutil.rmtree(self.path)
+
+    def _git_run_command(self, *args):
+        """Run git subcommand with args against the GitRepo temporary directory, returning stdout
+        """
+        os.chdir(self.path)
+        proc = subprocess.Popen(['git'] + list(args),
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL)
+        out, err = proc.communicate()
+        os.chdir(self._old_workdir)
+
+        if proc.returncode:
+            raise RuntimeError(str(err))
+
+        return out
+
+    def _rev_list(self, *args):
+        """Run git rev-list with args, returning stdout
+        """
+        return self._git_run_command('rev-list', *args)
+
+    def checkout_at_date(self, date_obj: date):
+        """Check out repo at midnight local time of the given date_obj.
+        If date_obj is older than the repository, check out the earliest commit
+        """
+        earliest_commit = self._rev_list('-n1', '--max-parents=0', 'master')
+        commit_at_date = self._rev_list('-n1',
+                                        '--first-parent',
+                                        '--before={0}'.format(date_obj.strftime('%Y-%m-%d')),
+                                        'master')
+        if not commit_at_date:
+            commit_at_date = earliest_commit
+
+        self._git_run_command('checkout', commit_at_date.strip())
+        self.head = commit_at_date
 
 
 def get_gwms_ces(repo_dir, production: bool = True) -> Set:
