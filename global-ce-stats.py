@@ -3,13 +3,13 @@
 import csv
 import sys
 
-import global_ces
+import ce_stats
 
 
 def main():
     """main function
     """
-    ce_fqdns = set.union(global_ces.get_gwms_ces(), global_ces.get_panda_ces())
+    ce_fqdns = set.union(ce_stats.get_gwms_ces(), ce_stats.get_panda_ces())
 
     fields = ['HOSTNAME',
               'IDLE',
@@ -26,9 +26,9 @@ def main():
     for fqdn in ce_fqdns:
         row = {'HOSTNAME': fqdn}
         try:
-            row.update(global_ces.get_ce_jobs(fqdn))
+            row.update(ce_stats.get_ce_jobs(fqdn))
         except Exception as exc:  # Failed communication with collector.
-            row.update({status: 0 for status in global_ces.CONDOR_STATUS_MAP.values()})
+            row.update({status: 0 for status in ce_stats.CONDOR_STATUS_MAP.values()})
             row['COMMUNICATION_ERROR'] = str(exc)
 
         writer.writerow(row)

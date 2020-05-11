@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Find global HTCondor-CEs from pilot factory configuration sources
+"""Find HTCondor-CE stats using pilot factory configuration sources
 """
 
 import json
