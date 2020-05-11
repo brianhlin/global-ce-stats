@@ -9,7 +9,10 @@ import ce_stats
 def main():
     """main function
     """
-    ce_fqdns = set.union(ce_stats.get_gwms_ces(), ce_stats.get_panda_ces())
+    with ce_stats.GitRepo(ce_stats.GWMS_FACTORY_REPO) as repo:
+        gwms_ces = ce_stats.get_gwms_ces(repo.path)
+
+    ce_fqdns = set.union(gwms_ces, ce_stats.get_panda_ces())
 
     fields = ['HOSTNAME',
               'IDLE',

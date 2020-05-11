@@ -47,15 +47,31 @@ def _parse_gwms_config(config: ElementTree.ElementTree) -> Set:
             if entry.get('enabled', '') == 'True' and entry.get('gridtype', '') == 'condor'}
 
 
-def get_gwms_ces(config_repo: str = GWMS_FACTORY_REPO, production: bool = True) -> Set:
+class GitRepo():
+    """Class for handling Git repositories
+    """
+
+    def __init__(self, repo):
+        """Clone a Git 'repo' into a temporary directory and return the path to the directory.
+        The caller is responsible for cleaning up this directory.
+        """
+        self.repo = repo
+        self.path = mkdtemp()
+        cmd = ['git', 'clone', '--depth', '1', self.repo, self.path]
+        subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        shutil.rmtree(self.path)
+
+
+def get_gwms_ces(repo_dir, production: bool = True) -> Set:
     """Given a Git repository containing GlideinWMS factory XML configuration,
     return the set of active, production HTCondor-CEs known to the GlideinWMS factories
     """
-    tmpdir = mkdtemp()
-    cmd = ['git', 'clone', '--depth', '1', config_repo, tmpdir]
-    subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    config_glob = '{0}/*.xml'.format(tmpdir)
+    config_glob = '{0}/*.xml'.format(repo_dir)
     factory_configs = glob(config_glob)
     if production:
         # Non-production entries are stored in '*-itb.xml'
@@ -65,8 +81,6 @@ def get_gwms_ces(config_repo: str = GWMS_FACTORY_REPO, production: bool = True) 
     for config_file in factory_configs:
         config_et = ElementTree.parse(config_file)
         gwms_ces.update(_parse_gwms_config(config_et))
-
-    shutil.rmtree(tmpdir, ignore_errors=True)
 
     return gwms_ces
 
