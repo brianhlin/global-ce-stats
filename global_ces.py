@@ -47,8 +47,9 @@ def _parse_gwms_config(config: ElementTree.ElementTree) -> Set:
             if entry.get('enabled', '') == 'True' and entry.get('gridtype', '') == 'condor'}
 
 
-def get_gwms_ces(config_repo: str = GWMS_FACTORY_REPO) -> Set:
-    """Find list of active HTCondor-CEs known to the GlideinWMS factories
+def get_gwms_ces(config_repo: str = GWMS_FACTORY_REPO, production: bool = True) -> Set:
+    """Given a Git repository containing GlideinWMS factory XML configuration,
+    return the set of active, production HTCondor-CEs known to the GlideinWMS factories
     """
     tmpdir = mkdtemp()
     cmd = ['git', 'clone', '--depth', '1', config_repo, tmpdir]
@@ -56,6 +57,9 @@ def get_gwms_ces(config_repo: str = GWMS_FACTORY_REPO) -> Set:
 
     config_glob = '{0}/*.xml'.format(tmpdir)
     factory_configs = glob(config_glob)
+    if production:
+        # Non-production entries are stored in '*-itb.xml'
+        factory_configs = [filename for filename in factory_configs if '-itb.xml' not in filename]
 
     gwms_ces = set()
     for config_file in factory_configs:
