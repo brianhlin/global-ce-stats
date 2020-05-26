@@ -123,8 +123,8 @@ def get_gwms_ces(repo_dir, production: bool = True) -> Set:
     return gwms_ces
 
 
-def get_panda_ces(panda_url: str = PANDA_URL) -> Set:
-    """Find list of active HTCondor-CEs known to the PanDA queues
+def get_panda_ces(panda_url: str = PANDA_URL) -> Dict[str, Set]:
+    """Find list of active HTCondor-CEs, grouped by site name, known to the PanDA queues
     """
     panda_query = '?json&preset=schedconf.all&state=ACTIVE&ce_flavour=HTCONDOR-CE&is_production=TRUE'
 
@@ -132,10 +132,15 @@ def get_panda_ces(panda_url: str = PANDA_URL) -> Set:
         panda_response = response.read()
         panda_resources = json.loads(panda_response)
 
-    panda_ces = set()
+    panda_ces: Dict[str, Set] = dict()
     for _, resource_info in panda_resources.items():
+        site = resource_info['atlas_site']
         for queue in resource_info['queues']:
-            panda_ces.update({_ce_fqdn(queue['ce_endpoint'])})
+            endpoint = _ce_fqdn(queue['ce_endpoint'])
+            try:
+                panda_ces[site].update({endpoint})
+            except KeyError:
+                panda_ces[site] = set([endpoint])
 
     return panda_ces
 
