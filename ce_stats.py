@@ -136,6 +136,9 @@ def get_panda_ces(panda_url: str = PANDA_URL) -> Dict[str, Set]:
     for _, resource_info in panda_resources.items():
         site = resource_info['atlas_site']
         for queue in resource_info['queues']:
+            if queue['ce_flavour'] != 'HTCONDOR-CE':  # skip any non HTCondor-CEs that sneak into the query
+                continue
+
             endpoint = _ce_fqdn(queue['ce_endpoint'])
             try:
                 panda_ces[site].update({endpoint})
